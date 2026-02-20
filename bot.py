@@ -4,7 +4,7 @@ from discord.ui import View, Button, Select, Modal, TextInput
 import datetime
 import asyncio
 
-TOKEN = "DISCORD_TOKEN"
+TOKEN = os.getenv("TOKEN")
 
 GUILD_ID = 1425201800310685708
 PANEL_CHANNEL_ID = 1425206713992220797
@@ -243,3 +243,4 @@ async def on_ready():
     await channel.send(embed=embed, view=Panel())
 
 bot.run(TOKEN)
+
