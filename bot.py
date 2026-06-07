@@ -14,7 +14,7 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# آيدي السيرفر والقنوات والرتب
+# الآيديات المطلوبة - تأكد من تغييرها لآيديات سيرفرك
 GUILD_ID = 1425201800310685708
 TICKET_CHANNEL_ID = 1425206713992220797
 LOG_CHANNEL_ID = 1473464868731486242
@@ -33,7 +33,7 @@ ROLES = {
     "apply": 1472618578359353394
 }
 
-# الإيموجيات
+# الإيموجيات - تأكد من صحة الآيديات
 EMOJIS = {
     "new_ticket": "<:ticket:1472593569272561858>",
     "tech_support": "<:tech:1472593719214477322>",
@@ -43,7 +43,7 @@ EMOJIS = {
     "options": "<:options:1472593573038788730>"
 }
 
-# تخزين بيانات التذاكر
+ZIYAD_GAMINGE = "🎫 ZIYAD GAMINGE"
 tickets_data = {}
 
 # ==================== كلاس البوت الرئيسي ====================
@@ -55,7 +55,7 @@ class TicketSystem(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"✅ {self.bot.user} جاهز للتشغيل!")
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="نظام التذاكر"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="نظام التذاكر | ZIYAD GAMINGE"))
 
 # ==================== رسالة التذاكر الرئيسية ====================
 
@@ -63,63 +63,67 @@ class MainTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="فتح تذكرة جديدة", style=discord.ButtonStyle.success, emoji=EMOJIS["new_ticket"], custom_id="open_ticket")
+    @discord.ui.button(label="فتح تذكرة جديدة", style=discord.ButtonStyle.success, emoji="🎫", custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketCategoryModal())
 
 class TicketCategoryModal(ui.Modal, title="📋 اختيار قسم التذكرة"):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None)
         
         self.category = ui.Select(
             placeholder="اختر القسم المناسب...",
             options=[
-                discord.SelectOption(label="الدعم الفني", value="support", emoji=EMOJIS["tech_support"], description="للحصول على دعم فني"),
-                discord.SelectOption(label="تواصل مع الإدارة", value="admin_contact", emoji=EMOJIS["admin_contact"], description="للتواصل مع الإدارة مباشرة"),
-                discord.SelectOption(label="تقديم للإدارة", value="apply", emoji=EMOJIS["apply"], description="تقديم طلب للانضمام لفريق العمل")
+                discord.SelectOption(label="الدعم الفني", value="support", emoji="🔧", description="للحصول على دعم فني"),
+                discord.SelectOption(label="تواصل مع الإدارة", value="admin_contact", emoji="👑", description="للتواصل مع الإدارة مباشرة"),
+                discord.SelectOption(label="تقديم للإدارة", value="apply", emoji="📝", description="تقديم طلب للانضمام لفريق العمل")
             ]
         )
         self.add_item(self.category)
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
         category_id = CATEGORIES[self.category.values[0]]
         role_id = ROLES[self.category.values[0]]
         category = interaction.guild.get_channel(category_id)
         
         # التحقق من وجود تذكرة مفتوحة
         for channel in interaction.guild.text_channels:
-            if channel.category == category and channel.name.startswith(f"ticket-{interaction.user.name.lower()}"):
-                await interaction.response.send_message("⚠️ لديك تذكرة مفتوحة بالفعل في هذا القسم!", ephemeral=True)
-                return
+            if channel.category and channel.category.id == category_id:
+                if channel.name.startswith(f"ticket-{interaction.user.name.lower()}"):
+                    await interaction.followup.send("⚠️ لديك تذكرة مفتوحة بالفعل في هذا القسم!", ephemeral=True)
+                    return
         
-        # إنشاء قناة التذكرة
-        overwrites = {
-            interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True, read_message_history=True),
-            interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-            interaction.guild.get_role(role_id): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-        }
-        
-        ticket_channel = await interaction.guild.create_text_channel(
-            f"ticket-{interaction.user.name.lower()}",
-            category=category,
-            overwrites=overwrites
-        )
-        
-        # حفظ بيانات التذكرة
-        tickets_data[str(ticket_channel.id)] = {
-            "user_id": interaction.user.id,
-            "role_id": role_id,
-            "category": self.category.values[0],
-            "created_at": str(datetime.now()),
-            "status": "open",
-            "claimed_by": None
-        }
-        
-        # إرسال رسالة الترحيب في التذكرة
-        embed = discord.Embed(
-            title=f"🎫 {ZIYAD_GAMINGE} | نظام التذاكر",
-            description=f"""
+        try:
+            # إنشاء قناة التذكرة
+            overwrites = {
+                interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True, read_message_history=True),
+                interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+                interaction.guild.get_role(role_id): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+            }
+            
+            ticket_channel = await interaction.guild.create_text_channel(
+                f"ticket-{interaction.user.name.lower()}",
+                category=category,
+                overwrites=overwrites
+            )
+            
+            # حفظ بيانات التذكرة
+            tickets_data[str(ticket_channel.id)] = {
+                "user_id": interaction.user.id,
+                "role_id": role_id,
+                "category": self.category.values[0],
+                "created_at": str(datetime.now()),
+                "status": "open",
+                "claimed_by": None
+            }
+            
+            # إرسال رسالة الترحيب في التذكرة
+            embed = discord.Embed(
+                title=f"🎫 ZIYAD GAMINGE | نظام التذاكر",
+                description=f"""
 مرحباً بك {interaction.user.mention} 👋
 
 **{interaction.guild.get_role(role_id).mention}** سيتم الرد على طلبك من طرف المسؤولين في أقرب وقت.
@@ -128,32 +132,30 @@ class TicketCategoryModal(ui.Modal, title="📋 اختيار قسم التذكر
 
 📌 **يرجى شرح مشكلتك بالتفصيل**
 """,
-            color=discord.Color.gold()
-        )
-        embed.set_footer(text="ZIYAD GAMINGE | جميع الحقوق محفوظة", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
-        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
-        
-        view = TicketControlView(role_id, interaction.user.id)
-        await ticket_channel.send(f"{interaction.user.mention} {interaction.guild.get_role(role_id).mention}", embed=embed, view=view)
-        await ticket_channel.send("✅ تم إنشاء التذكرة بنجاح! يرجى شرح مشكلتك بالتفصيل.")
-        
-        await interaction.response.send_message(f"✅ تم إنشاء تذكرتك بنجاح! {ticket_channel.mention}", ephemeral=True)
-        
-        # تسجيل في اللوق
-        await self.log_action(interaction.guild, f"تم فتح تذكرة جديدة من {interaction.user.mention} في قسم {self.category.values[0]}", ticket_channel.id)
-
-    async def log_action(self, guild, action, channel_id=None):
-        log_channel = guild.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            embed = discord.Embed(
-                title="📝 سجل التذاكر",
-                description=action,
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
+                color=discord.Color.gold()
             )
-            if channel_id:
-                embed.add_field(name="ID القناة", value=f"`{channel_id}`")
-            await log_channel.send(embed=embed)
+            embed.set_footer(text="ZIYAD GAMINGE | جميع الحقوق محفوظة")
+            if interaction.guild.icon:
+                embed.set_thumbnail(url=interaction.guild.icon.url)
+            
+            view = TicketControlView(role_id, interaction.user.id)
+            await ticket_channel.send(f"{interaction.user.mention} {interaction.guild.get_role(role_id).mention}", embed=embed, view=view)
+            
+            await interaction.followup.send(f"✅ تم إنشاء تذكرتك بنجاح! {ticket_channel.mention}", ephemeral=True)
+            
+            # تسجيل في اللوق
+            log_channel = interaction.guild.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                log_embed = discord.Embed(
+                    title="📝 تم فتح تذكرة جديدة",
+                    description=f"**المستخدم:** {interaction.user.mention}\n**القسم:** {self.category.values[0]}\n**القناة:** {ticket_channel.mention}",
+                    color=discord.Color.green(),
+                    timestamp=datetime.now()
+                )
+                await log_channel.send(embed=log_embed)
+                
+        except Exception as e:
+            await interaction.followup.send(f"❌ حدث خطأ: {str(e)}", ephemeral=True)
 
 # ==================== أزرار التحكم في التذكرة ====================
 
@@ -163,7 +165,7 @@ class TicketControlView(discord.ui.View):
         self.role_id = role_id
         self.user_id = user_id
 
-    @discord.ui.button(label="استلام التذكرة", style=discord.ButtonStyle.primary, emoji=EMOJIS["claim"], custom_id="claim_ticket")
+    @discord.ui.button(label="استلام التذكرة", style=discord.ButtonStyle.primary, emoji="✅", custom_id="claim_ticket")
     async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.role_id not in [role.id for role in interaction.user.roles]:
             await interaction.response.send_message("⚠️ ليس لديك صلاحية لاستلام هذه التذكرة!", ephemeral=True)
@@ -179,11 +181,8 @@ class TicketControlView(discord.ui.View):
         embed.set_footer(text="ZIYAD GAMINGE | نظام التذاكر")
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("✅ تم استلام التذكرة بنجاح!", ephemeral=True)
-        
-        # تسجيل في اللوق
-        await self.log_action(interaction.guild, f"{interaction.user.mention} استلم تذكرة {interaction.channel.mention}")
 
-    @discord.ui.button(label="قائمة الخيارات", style=discord.ButtonStyle.secondary, emoji=EMOJIS["options"], custom_id="options_menu")
+    @discord.ui.button(label="قائمة الخيارات", style=discord.ButtonStyle.secondary, emoji="⚙️", custom_id="options_menu")
     async def options_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.role_id not in [role.id for role in interaction.user.roles]:
             await interaction.response.send_message("⚠️ ليس لديك صلاحية لاستخدام هذه القائمة!", ephemeral=True)
@@ -197,17 +196,6 @@ class TicketControlView(discord.ui.View):
         )
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-    async def log_action(self, guild, action):
-        log_channel = guild.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            embed = discord.Embed(
-                title="📝 سجل التذاكر",
-                description=action,
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
-            await log_channel.send(embed=embed)
-
 # ==================== قائمة الخيارات ====================
 
 class OptionsView(discord.ui.View):
@@ -219,14 +207,13 @@ class OptionsView(discord.ui.View):
     @discord.ui.button(label="ارسال تذكير", style=discord.ButtonStyle.warning, emoji="🔔", custom_id="remind")
     async def remind_user(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.guild.get_member(self.user_id)
-        channel = interaction.channel
         
         embed = discord.Embed(
             title="📢 تذكير بالتذكرة المفتوحة",
             description=f"""
 مرحباً {user.mention} 👋
 
-تذكرتك **{channel.mention}** لا تزال مفتوحة.
+تذكرتك **{interaction.channel.mention}** لا تزال مفتوحة.
 يرجى الرد عليها في أقرب وقت ممكن.
 
 **السيرفر:** {interaction.guild.name}
@@ -288,22 +275,26 @@ class CloseReasonModal(ui.Modal, title="🔒 اغلاق التذكرة"):
 **تم اغلاق التذكرة من طرف:** {interaction.user.mention}
 **السبب:** {self.reason.value}
 
-سيتم حذف هذه القناة بعد 10 ثواني.
+سيتم حذف هذه القناة بعد 5 ثواني.
 """,
             color=discord.Color.red()
         )
         embed.set_footer(text="ZIYAD GAMINGE | نظام التذاكر")
         await interaction.channel.send(embed=embed)
         
-        # ارسال نسخة للمستخدم
-        transcript = await create_transcript(interaction.channel)
-        try:
-            await user.send(f"📄 نسخة من تذكرتك `{interaction.channel.name}`:", file=discord.File(transcript))
-        except:
-            pass
-        
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         await interaction.channel.delete()
+        
+        # تسجيل في اللوق
+        log_channel = interaction.guild.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            log_embed = discord.Embed(
+                title="🔒 تم اغلاق تذكرة",
+                description=f"**تم الاغلاق بواسطة:** {interaction.user.mention}\n**السبب:** {self.reason.value}",
+                color=discord.Color.red(),
+                timestamp=datetime.now()
+            )
+            await log_channel.send(embed=log_embed)
         
         await interaction.response.send_message("✅ تم اغلاق التذكرة!", ephemeral=True)
 
@@ -324,14 +315,15 @@ class RenameModal(ui.Modal, title="✏️ اعادة تسمية التذكرة")
 
     async def on_submit(self, interaction: discord.Interaction):
         old_name = interaction.channel.name
-        await interaction.channel.edit(name=f"ticket-{self.new_name.value.lower().replace(' ', '-')}")
+        new_name = self.new_name.value.lower().replace(" ", "-")
+        await interaction.channel.edit(name=f"ticket-{new_name}")
         
         embed = discord.Embed(
             title="✏️ تم اعادة تسمية التذكرة",
             description=f"""
 **قام بتغيير الاسم:** {interaction.user.mention}
 **من:** `{old_name}`
-**الى:** `ticket-{self.new_name.value.lower().replace(' ', '-')}`
+**الى:** `ticket-{new_name}`
 """,
             color=discord.Color.blue()
         )
@@ -339,49 +331,41 @@ class RenameModal(ui.Modal, title="✏️ اعادة تسمية التذكرة")
         await interaction.channel.send(embed=embed)
         await interaction.response.send_message("✅ تم تغيير اسم القناة!", ephemeral=True)
 
-# ==================== اعدادات البوت ====================
-
-ZIYAD_GAMINGE = "🎫 ZIYAD GAMINGE"
-
-async def create_transcript(channel):
-    """انشاء نسخة نصية من المحادثة"""
-    transcript_file = f"transcript_{channel.name}.txt"
-    with open(transcript_file, 'w', encoding='utf-8') as f:
-        f.write(f"نسخة من تذكرة: {channel.name}\n")
-        f.write(f"تاريخ الانشاء: {datetime.now()}\n")
-        f.write("="*50 + "\n\n")
-        
-        async for message in channel.history(limit=500, oldest_first=True):
-            f.write(f"[{message.created_at}] {message.author.name}: {message.content}\n")
-    
-    return transcript_file
+# ==================== اعدادات البوت الرئيسية ====================
 
 @bot.event
 async def on_ready():
     print(f"✅ {bot.user} جاهز للتشغيل!")
-    print(f"📊 سيرفرات: {len(bot.guilds)}")
+    print(f"📊 السيرفر: {bot.guilds[0].name if bot.guilds else 'None'}")
+    
+    # اضافة الكوج
+    await bot.add_cog(TicketSystem(bot))
     
     # ارسال رسالة التذاكر الرئيسية
     guild = bot.get_guild(GUILD_ID)
     if guild:
         channel = guild.get_channel(TICKET_CHANNEL_ID)
         if channel:
-            await channel.purge(limit=100)
+            # مسح الرسائل السابقة
+            async for msg in channel.history(limit=100):
+                if msg.author == bot.user:
+                    await msg.delete()
             
             embed = discord.Embed(
-                title=f"🎫 {ZIYAD_GAMINGE}",
+                title=f"🎫 ZIYAD GAMINGE",
                 description="""
-مرحبا بكم في سيرفرنا. دائما اسعادكم فيرجى احترام قوانين السيرفر وشكراً.
+**مرحبا بكم في سيرفرنا. دائما اسعادكم فيرجى احترام قوانين السيرفر وشكراً.**
 
 **يرجى اختيار القسم الصحيح لتجنب العقوبة**
 
---- 
+---
 جميع الحقوق محفوظة | ZIYAD GAMINGE
 """,
                 color=discord.Color.gold()
             )
-            embed.set_footer(text=ZIYAD_GAMINGE)
-            embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+            embed.set_footer(text="ZIYAD GAMINGE | نظام التذاكر الاحترافي")
+            if guild.icon:
+                embed.set_thumbnail(url=guild.icon.url)
             
             view = MainTicketView()
             await channel.send(embed=embed, view=view)
@@ -391,31 +375,39 @@ async def on_ready():
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def setup_ticket(ctx):
+async def setup(ctx):
     """اعداد نظام التذاكر"""
-    await ctx.channel.purge(limit=1)
-    embed = discord.Embed(
-        title=f"🎫 {ZIYAD_GAMINGE}",
-        description="""
-مرحبا بكم في سيرفرنا. دائما اسعادكم فيرجى احترام قوانين السيرفر وشكراً.
+    guild = ctx.guild
+    channel = guild.get_channel(TICKET_CHANNEL_ID)
+    if channel:
+        async for msg in channel.history(limit=100):
+            if msg.author == bot.user:
+                await msg.delete()
+        
+        embed = discord.Embed(
+            title=f"🎫 ZIYAD GAMINGE",
+            description="""
+**مرحبا بكم في سيرفرنا. دائما اسعادكم فيرجى احترام قوانين السيرفر وشكراً.**
 
 **يرجى اختيار القسم الصحيح لتجنب العقوبة**
 
---- 
+---
 جميع الحقوق محفوظة | ZIYAD GAMINGE
 """,
-        color=discord.Color.gold()
-    )
-    view = MainTicketView()
-    await ctx.send(embed=embed, view=view)
-    await ctx.send("✅ تم اعداد نظام التذاكر!", delete_after=5)
+            color=discord.Color.gold()
+        )
+        view = MainTicketView()
+        await channel.send(embed=embed, view=view)
+        await ctx.send("✅ تم اعداد نظام التذاكر!", delete_after=5)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def test_ticket(ctx):
-    """اختبار النظام"""
-    await ctx.send("🔄 جاري اختبار النظام...")
-    await ctx.send("✅ النظام يعمل بشكل طبيعي!")
+async def test(ctx):
+    """اختبار البوت"""
+    await ctx.send("✅ البوت يعمل بشكل طبيعي!")
 
-# تشغيل البوت
-bot.run("MTQ3MzM3ODEyODg0NjkxMzU3Nw.G_sUqt._0J87m3eOIknLQePVWJQrDC_ox_75V6DsylCic")
+# تشغيل البوت - ضع التوكن الخاص بك هنا
+TOKEN = "MTQ3MzM3ODEyODg0NjkxMzU3Nw.G_sUqt._0J87m3eOIknLQePVWJQrDC_ox_75V6DsylCic"
+
+if __name__ == "__main__":
+    bot.run(TOKEN)
