@@ -418,4 +418,4 @@ async def test_ticket(ctx):
     await ctx.send("✅ النظام يعمل بشكل طبيعي!")
 
 # تشغيل البوت
-bot.run("YOUR_BOT_TOKEN_HERE")
+bot.run("MTQ3MzM3ODEyODg0NjkxMzU3Nw.G_sUqt._0J87m3eOIknLQePVWJQrDC_ox_75V6DsylCic")
