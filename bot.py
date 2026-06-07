@@ -258,7 +258,7 @@ async def setup(ctx):
     await ctx.send("✅ تم اعداد نظام التذاكر!", delete_after=5)
 
 # ضع توكن البوت هنا
-TOKEN = "MTQ3MzM3ODEyODg0NjkxMzU3Nw.G_sUqt._0J87m3eOIknLQePVWJQrDC_ox_75V6DsylCic"
+TOKEN = "MTQ3MzM3ODEyODg0NjkxMzU3Nw.GnVHMm.kAkgkcvmy6fgHHdaRbiUKCMoWM_XND5fFJkx5g"
 
 if __name__ == "__main__":
     bot.run(TOKEN)
